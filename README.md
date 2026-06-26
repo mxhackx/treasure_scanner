@@ -59,3 +59,5 @@ Once discovered, the game triggers a full animation sequence:
 ### Compile
 ```bash
 g++ main.cpp -o treasure_scan -lsfml-graphics -lsfml-window -lsfml-system
+```
+It looks simple now, but it took me 2 days to learn C++ and SFML 😢. Let’s continue 😁 — next step: Guess the Hidden Number.
