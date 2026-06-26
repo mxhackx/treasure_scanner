@@ -73,7 +73,6 @@ public:
     static constexpr float FINAL_UI_Y2 = 480.f;
     static constexpr int CHARACTER_SIZE = 80;
     static constexpr float TREASURE_BIG_SIZE = 920.f;
-
     // ================= VARIABLES =================
     int height;
     int width;
@@ -107,9 +106,9 @@ public:
 
 // ================= CONSTRUCTOR =================
 Grid::Grid(int h, int w, int s)
-    : height((h > 0) ? h : CELL_SIZE_SMALL),
-      width((w > 0) ? w : CELL_SIZE_SMALL),
-      size((s > 0) ? s : CELL_SIZE_SMALL),
+    : height(h),
+      width(w),
+      size(s),
       count(0),
       time(0.f),
       find(false),
@@ -136,6 +135,8 @@ Grid::Grid(int h, int w, int s)
     t_time.setFillColor(sf::Color::Blue);
     t_count.setCharacterSize(CHARACTER_SIZE);
     t_time.setCharacterSize(CHARACTER_SIZE);
+    t_count.setString("");
+    t_time.setString("");
 }
 
 // ================= MAP =================
@@ -228,20 +229,17 @@ string normalize_str(T a, int c)
     string r = to_string(a);
     int s = r.size();
 
-    while (c - s > 0){
-        n.push_back('0');
-        s = r.size();
-    }
-    n += r.substr(0, c);
-    return n;
+    if (s >= c)
+        return r.substr(0, c);
+    return string(c - s, '0') + r;
 }
 template <typename T>
 string normalize_time_str(T s, int c, int t, int time = 30, string str = ": ", string end=" seconds")
 {
     string n = normalize_str(s, c);
-    int size = (int)((t * n.size()) / time);
+    int size = static_cast<int>(static_cast<float>(t * n.size()) / static_cast<float>(time));
 
-    size = (size > n.size()) ? n.size() : size;
+    size = (size >= n.size()) ? n.size() : size;
     return str + n.substr(0, size) + end;
 }
 
@@ -249,7 +247,8 @@ string normalize_time_str(T s, int c, int t, int time = 30, string str = ": ", s
 void Grid::draw_treasure(sf::RenderWindow& window)
 {
     float temp = ZOOM_TIME;
-
+    string s_count;
+    string s_time;
     float c = a / temp;
     float d = b / temp;
 
@@ -270,7 +269,7 @@ void Grid::draw_treasure(sf::RenderWindow& window)
         r.setSize(sf::Vector2f(ts.x + s * t, ts.y + s * t));
         r.setPosition(nx, ny);
     }
-    if (nx < GRID_OFFSET_X && state == 0) {
+    if (t >= temp && state == 0) {
         state = 1;
         sprites[map[y][x]].sp.setScale(sf::Vector2f(TREASURE_SCALE_BIG, TREASURE_SCALE_BIG));
         r.setSize(sf::Vector2f(TREASURE_BIG_SIZE, TREASURE_BIG_SIZE));
@@ -284,12 +283,12 @@ void Grid::draw_treasure(sf::RenderWindow& window)
     nx = c * t;
     ny = 10;
 
-    if (state == 1 && c * t <= SHRINK_OFFSET_X && c * t > 0) {
+    if (state == 1 && c * t <= SHRINK_OFFSET_X) {
         r.setPosition(GRID_OFFSET_X - nx, ny);
         sprites[map[y][x]].sp.setPosition(GRID_OFFSET_X - nx, ny);
     }
 
-    if (state == 1 && c * t > SHRINK_OFFSET_X) {
+    if (state == 1 && c * t >= SHRINK_OFFSET_X) {
         state = 2;
 
         t_count.setPosition(sf::Vector2f(FINAL_UI_X, FINAL_UI_Y1));
@@ -298,9 +297,11 @@ void Grid::draw_treasure(sf::RenderWindow& window)
 
     t = (float)clock.getElapsedTime().asMilliseconds() - temp * 2.f - time * 1000.f;
 
-    if (state == 2 && t > 0) {
-        t_count.setString(normalize_time_str(count, 3, (int)(t / 100.f), 30, "Count: ", " cases"));
-        t_time.setString(normalize_time_str(time, 5, (int)(t / 100.f), 30, "Time: ", " seconds"));
+    if (state == 2) {
+        s_count = normalize_time_str(count, 3, static_cast<int>(t / 100.f), 30, "Count: ", " cases");
+        s_time = normalize_time_str(time, 5, static_cast<int>(t / 100.f), 30, "Time: ", " seconds");
+        t_count.setString(s_count);
+        t_time.setString(s_time);
 
         window.draw(t_count);
         window.draw(t_time);
@@ -311,13 +312,24 @@ void Grid::draw_treasure(sf::RenderWindow& window)
 }
 
 // ================= MAIN =================
-int main()
+int main(int ac, char **av)
 {
+    int height = 30;
+    int width = 30;
+    int size = 30;
+    if (ac == 4){
+        if (stoi(av[1]) > 0)
+            height = stoi(av[1]);
+        if (stoi(av[2]) > 0)
+            width = stoi(av[2]);
+        if (stoi(av[3]) > 20)
+            size = stoi(av[3]);
+    }
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Treasure Scan");
 
     srand((unsigned int)time(0));
 
-    Grid grid(30, 30);
+    Grid grid(height, width, size);
 
     while (window.isOpen()) {
         sf::Event event;
